@@ -8,7 +8,9 @@ const { target } = require('config');
 const app = express();
 
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -47,6 +49,7 @@ const proxyOptions = {
 
 app.use(proxy(proxyFilter, proxyOptions));
 
+// 手动发送请求
 app.post('/sendRequest', async (req, res, next) => {
   const { id } = req.body;
 
@@ -67,6 +70,7 @@ app.post('/sendRequest', async (req, res, next) => {
     options.qs = body;
   } else if (method === 'POST') {
     options.body = body;
+    options.headers = { 'Content-Type': 'application/json' }
   }
 
   try {
@@ -78,6 +82,17 @@ app.post('/sendRequest', async (req, res, next) => {
     res.send(error.message);
   }
 
+});
+
+// 展示已接收到的回调请求
+app.get('/requests', async (req, res, next) => {
+
+  const data = await models.request_log.findAll({
+    order: [[ 'id', 'DESC' ]],
+    limit: 20,
+  });
+
+  res.render('index', { rows: data });
 });
 
 app.use(function(req, res, next) {
